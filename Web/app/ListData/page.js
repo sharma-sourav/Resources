@@ -138,11 +138,15 @@ export default function MiniDrawer() {
   // console.log(employe);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  var storedData = localStorage.getItem("userData");
-  var userData = JSON.parse(storedData);
+  var firstNameInitials ;
+useEffect(() => {
+  const storedData = localStorage.getItem("userData");
+  const userData = JSON.parse(storedData);
   console.log("hello ", userData);
-  const firstNameInitials = userData.user.firstname.slice(0, 2).toUpperCase();
+   firstNameInitials = userData.user.firstname.slice(0, 2).toUpperCase();
+}, []); 
  
+
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;

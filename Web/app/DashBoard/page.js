@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
-import { useState } from "react";``
+import { useState } from "react";
+import { useEffect } from "react";
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import { styled, useTheme } from "@mui/material/styles";
@@ -111,11 +112,14 @@ const Drawer = styled(MuiDrawer, {
 
 export default function MiniDrawer() {
   const router = useRouter();
-  var storedData = localStorage.getItem("userData");
-  var userData = JSON.parse(storedData);
-  console.log("hello ", userData);
-  const firstNameInitials = userData.user.firstname.slice(0, 2).toUpperCase();
- 
+
+  var firstNameInitials ;
+  useEffect(() => {
+    const storedData = localStorage.getItem("userData");
+    const userData = JSON.parse(storedData);
+    console.log("hello ", userData);
+     firstNameInitials = userData.user.firstname.slice(0, 2).toUpperCase();
+  }, []); 
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
   const classes = useStyles();
