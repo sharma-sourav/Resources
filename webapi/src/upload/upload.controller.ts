@@ -10,14 +10,14 @@ export class UploadController {
   async uploadFile(@UploadedFile(
     new ParseFilePipe({
         validators:[
-            // new MaxFileSizeValidator({maxSize:1000}), new FileTypeValidator({fileType:'image/jpeg'}),
+            // new MaxFileSizeValidator({maxSize:1000}), new FileTypeValidator({fileType:'image/jpeg'}),                             
         ]
     })
   ) file: Express.Multer.File) {
-    await this.uploadService.upload(file.originalname,file.buffer);
+    const test = await this.uploadService.upload(file.originalname,file.buffer);
     console.log(file.originalname);
     const link = "https://nestimg.s3.ap-south-1.amazonaws.com/"+file.originalname;
     console.log("filelink:",link);
-    return link
+    return link;
   }
 }

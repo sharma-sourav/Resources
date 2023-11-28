@@ -17,6 +17,6 @@ export class UploadService {
                 Body: file,
             }),
         );
-        console.log(response)
+        console.log('response' + response)
     }
 }

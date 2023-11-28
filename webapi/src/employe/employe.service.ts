@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateEmployeDto } from './employedto/create-employe.dto';
+import { EmployeDto } from './employedto/create-employe.dto';
 import { UpdateEmployeDto } from './employedto/update-employe';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Employe } from './employeentity/employe.entity';
@@ -17,7 +17,7 @@ export class EmployeService {
   {}
    
   
-  create(createEmployeDto: CreateEmployeDto) {
+  create(createEmployeDto: EmployeDto) {
     // return this.userRepository.create(createUserDto);/
     const Employee = this.userRepository.create(createEmployeDto);
     return this.userRepository.save(Employee);

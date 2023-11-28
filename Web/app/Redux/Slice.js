@@ -34,13 +34,21 @@ export const login = createAsyncThunk("user/loginuser", async (userData) => {
 
 export const employe = createAsyncThunk("user/employe", async (userData) => {
   try {
-    const response = await axios.post("http://localhost:3000/employe/Add", userData);
-    return response.data;
+    const response = await axios.post("http://localhost:3000/employe/Add", userData,{
+     
+    });
+  if (response.ok){
+    getAllEmployees();
+  }
    
+    return response.data;
+    
+  
   } catch (error) {
     throw error;
   }
-  
+
+ 
 });
 export const deleteEmployeeById = createAsyncThunk("employees/deleteEmployeeById", async (id) => {
   try {
@@ -50,6 +58,20 @@ export const deleteEmployeeById = createAsyncThunk("employees/deleteEmployeeById
     throw error;
   }
 });
+export const UpdateEmployee = createAsyncThunk("employees/updateEmployee", async (employeeData) => {
+
+  try {
+    console.log('here', employeeData);
+    const response = await axios.put(`http://localhost:3000/employe/${employeeData.id}`, {...employeeData});
+    if (response.ok){
+      getAllEmployees();
+    }
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+});
+
 export const getAllEmployees = createAsyncThunk("employees/getAllEmployees", async () => {
   
     const response = await fetch("http://localhost:3000/employe/allemploye");
@@ -96,6 +118,22 @@ const employeAdd = createSlice({
       state.isSuccess = "Success";
     });
     builder.addCase(employe.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
+    });
+    builder.addCase(UpdateEmployee.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(UpdateEmployee.fulfilled, (state, action) => {
+      state.loading = false;
+      // Update the specific employee in the state. You need to identify the employee to update, for example, by ID.
+      state.employees = state.employees.map((employee) =>
+        employee.id === action.payload.id ? action.payload : employee
+      );
+      state.isSuccess = "Success";
+    });
+    builder.addCase(UpdateEmployee.rejected, (state, action) => {
       state.loading = false;
       state.error = action.error.message;
     });

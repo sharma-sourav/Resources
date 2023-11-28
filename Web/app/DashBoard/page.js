@@ -112,13 +112,17 @@ const Drawer = styled(MuiDrawer, {
 
 export default function MiniDrawer() {
   const router = useRouter();
+  const [firstNameInitials, setFirstNameInitials] = useState("");
 
-  var firstNameInitials ;
+ 
   useEffect(() => {
     const storedData = localStorage.getItem("userData");
     const userData = JSON.parse(storedData);
     console.log("hello ", userData);
-     firstNameInitials = userData.user.firstname.slice(0, 2).toUpperCase();
+    if (userData && userData.user && userData.user.firstname) {
+      const initials = userData.user.firstname.slice(0, 2).toUpperCase();
+      setFirstNameInitials(initials);
+    }
   }, []); 
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);

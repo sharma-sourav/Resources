@@ -5,7 +5,7 @@ import Radio from "@mui/material/Radio";
 import { useState, useEffect } from "react";
 import { styled, useTheme } from "@mui/material/styles";
 import Pagination from "@mui/material/Pagination";
-import "./list.css";
+import './list.css'
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -41,9 +41,11 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import { deleteEmployeeById } from "../Redux/Slice";
 import FormLabel from "@mui/material/FormLabel";
 import { deepOrange } from "@mui/material/colors";
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import { useRouter } from "next/dist/client/components/navigation";
+import { UpdateEmployee } from "../Redux/Slice";
+import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 const drawerWidth = 240;
 
 const openedMixin = (theme) => ({
@@ -138,26 +140,33 @@ export default function MiniDrawer() {
   // console.log(employe);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  var firstNameInitials ;
-useEffect(() => {
-  const storedData = localStorage.getItem("userData");
-  const userData = JSON.parse(storedData);
-  console.log("hello ", userData);
-   firstNameInitials = userData.user.firstname.slice(0, 2).toUpperCase();
-}, []); 
- 
 
+  useEffect(() => {
+    const storedData = localStorage.getItem("userData");
+    const userData = JSON.parse(storedData);
+    console.log("hello ", userData);
+    if (userData && userData.user && userData.user.firstname) {
+      const initials = userData.user.firstname.slice(0, 2).toUpperCase();
+      setFirstNameInitials(initials);
+    }
+  }, []);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
   const employeesToDisplay = employees.slice(startIndex, endIndex);
-  const handleDelete=(id)=>{
-    if (window.confirm("Are you sure you want to delete this employee?")) {
-      dispatch(deleteEmployeeById(id))
+  const handleDelete = async (id, index) => {
+    try {
+      if (window.confirm("Are you sure you want to delete this employee?")) {
+        await dispatch(deleteEmployeeById(id));
+        const updatedEmployees = [...employees.slice(0, index), ...employees.slice(index + 1)];
+        dispatch(getAllEmployees(updatedEmployees));
+      }
+    } catch (error) {
+      // Handle the error, e.g., show an error message
+      console.error("Error deleting employee:", error);
     }
-   
-  }
+  };
   const handlePageChange = (event, page) => {
     setCurrentPage(page);
   };
@@ -182,19 +191,62 @@ useEffect(() => {
     setOpen(false);
   };
   const [isAddUserModalOpen, setAddUserModalOpen] = useState(false);
+  const [isEditUserModalOpen, setEditUserModalOpen] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
+  const [editProfilePicture,setEditprofilePicture]=useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [firstNameInitials, setFirstNameInitials] = useState("");
   const openAddUserModal = () => {
     setAddUserModalOpen(true);
   };
 
+  const openEditUserModal = (emp) => {
+    setEditUserModalOpen(true);
+    setSelectedEmployee(emp);
+
+    setFormData({
+      name: emp.name,
+      skill: emp.skill,
+      email: emp.email,
+      phone: emp.phone,
+      company: emp.company,
+      experience: emp.experience,
+      freelancer: emp.freelancer,
+      file: emp.imglink,
+    });
+  };
+
   const closeAddUserModal = () => {
     setAddUserModalOpen(false);
+    setEditUserModalOpen(false);
   };
-  const handleAddUser = (e) => {
+  const handleEditUser = async () => {
+    let updatedEmployeeData = { ...formData };
+  
+    if (!!!editProfilePicture) {
+      delete updatedEmployeeData["file"];
+      console.log("update ", updatedEmployeeData);
+    }
+  
+    try {
+      await dispatch(UpdateEmployee({ id: selectedEmployee.id, ...updatedEmployeeData }));
+      setEditprofilePicture("");
+      updatedEmployeeData = null;
+      closeAddUserModal();
+    } catch (error) {
+      // Handle the error
+      console.error("Error updating employee:", error);
+    } finally {
+      dispatch(getAllEmployees()); // You may not need this depending on your requirements
+    }
+  };
+  
+  const handleAddUser = async (e) => {
     e.preventDefault();
-
+    setProfilePicture(null);
     const newEmptyFields = {};
     let hasEmptyFields = false;
+  
     for (const key in formData) {
       if (formData[key] === "") {
         newEmptyFields[key] = true;
@@ -203,35 +255,44 @@ useEffect(() => {
         newEmptyFields[key] = false;
       }
     }
-
+  
     setEmptyFields(newEmptyFields);
-
+  
     if (hasEmptyFields) {
       // Handle empty fields (e.g., show an alert)
       console.log("Fill in all input fields");
     } else {
-      dispatch(employe(formData));
-      console.log("Data:", formData);
-      if (emptyFields != null) {
-        closeAddUserModal();
+      const employeeData = new FormData();
+      employeeData.append("name", formData.name);
+      employeeData.append("skill", formData.skill);
+      employeeData.append("email", formData.email);
+      employeeData.append("phone", formData.phone);
+      employeeData.append("company", formData.company);
+      employeeData.append("experience", formData.experience);
+      employeeData.append("freelancer", formData.freelancer);
+      employeeData.append("file", formData.file);
+  
+      try {
+        await dispatch(employe(employeeData));
+        console.log("Data:", formData);
+        if (emptyFields != null) {
+          closeAddUserModal();
+        }
+      } catch (error) {
+        // Handle the error
+      } finally {
+        // Move dispatch(getAllEmployees()) here to ensure it is called after employe action
+        dispatch(getAllEmployees());
       }
     }
-   
   };
+  
   useEffect(() => {
-    dispatch(getAllEmployees());
-  }, [employees,dispatch]);
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+    // You may not need this initial dispatch here, depending on your requirements
+     dispatch(getAllEmployees());
+  }, [dispatch]);
+  
 
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setProfilePicture(event.target.result);
-      };
-      reader.readAsDataURL(selectedFile);
-    }
-  };
   const [emptyFields, setEmptyFields] = useState({});
   const [formData, setFormData] = useState({
     name: "",
@@ -241,10 +302,48 @@ useEffect(() => {
     company: "",
     experience: "",
     freelancer: "",
+    file: null,
   });
   // console.log("name", employees);
- 
 
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+
+    // Ensure a file is selected
+    if (selectedFile) {
+      // Update formData with the selected file
+      setFormData({
+        ...formData,
+        file: selectedFile,
+      });
+
+      // Convert selected file to data URL and set as profile picture
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicture(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
+  const handleFileEditChange = (e) => {
+    const selectedFile = e.target.files[0];
+
+    // Ensure a file is selected
+    if (selectedFile) {
+      // Update formData with the selected file
+      setFormData({
+        ...formData,
+        file: selectedFile,
+      });
+
+      // Convert selected file to data URL and set as profile picture
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditprofilePicture(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData({
@@ -259,10 +358,10 @@ useEffect(() => {
       });
     }
   };
-  const handlelogout=()=>{
-    router.push('/login');
+  const handlelogout = () => {
+    router.push("/login");
     setAnchorEl(null);
-  }
+  };
   const classes = useStyles();
   const classess = usemargin();
   return (
@@ -283,34 +382,35 @@ useEffect(() => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div">
-          ByteWave Consulting
+            ByteWave Consulting
           </Typography>
           <div>
-      <Button
-        id="basic-button"
-        aria-controls={opene ? 'basic-menu' : undefined}
-        aria-haspopup="true"
-        aria-expanded={opene ? 'true' : undefined}
-        onClick={handleClick}
-        sx={{ 
-        }}
-      >
-      <Avatar sx={{ bgcolor: deepOrange[500] }}>{firstNameInitials}</Avatar>
-      </Button>
-      <Menu
-        id="basic-menu"
-        anchorEl={anchorEl}
-        open={opene}
-        onClose={handleClose}
-        MenuListProps={{
-          'aria-labelledby': 'basic-button',
- }}
-      >
-        <MenuItem onClick={handleClose}>Profile</MenuItem>
-        <MenuItem onClick={handleClose}>My account</MenuItem>
-        <MenuItem onClick={handlelogout} >Logout</MenuItem>
-      </Menu>
-    </div>
+            <Button
+              id="basic-button"
+              aria-controls={opene ? "basic-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={opene ? "true" : undefined}
+              onClick={handleClick}
+              sx={{}}
+            >
+              <Avatar sx={{ bgcolor: deepOrange[500] }}>
+                {firstNameInitials}
+              </Avatar>
+            </Button>
+            <Menu
+              id="basic-menu"
+              anchorEl={anchorEl}
+              open={opene}
+              onClose={handleClose}
+              MenuListProps={{
+                "aria-labelledby": "basic-button",
+              }}
+            >
+              <MenuItem onClick={handleClose}>Profile</MenuItem>
+              <MenuItem onClick={handleClose}>My account</MenuItem>
+              <MenuItem onClick={handlelogout}>Logout</MenuItem>
+            </Menu>
+          </div>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
@@ -421,7 +521,7 @@ useEffect(() => {
                     {" "}
                     <Avatar
                       alt="Profile Picture"
-                      src={profilePicture}
+                      src={emp.imglink}
                       style={{ width: "50px", height: "50px" }}
                       type="file"
                       onChange={handleFileChange}
@@ -441,6 +541,7 @@ useEffect(() => {
                       className="Edit"
                       variant="contained"
                       color="success"
+                      onClick={() => openEditUserModal(emp)}
                     >
                       Edit
                     </Button>
@@ -448,7 +549,7 @@ useEffect(() => {
                       variant="outlined"
                       color="error"
                       className={classess.margin}
-                      onClick={() => handleDelete(emp.id)}
+                      onClick={() => handleDelete(emp.id,index)}
                     >
                       Delete
                     </Button>
@@ -478,8 +579,16 @@ useEffect(() => {
                 src={profilePicture}
                 style={{ width: "100px", height: "100px" }}
                 type="file"
-                onChange={handleFileChange}
               />
+              <label htmlFor="fileInput">
+                <AddAPhotoIcon />
+                <input
+                  id="fileInput"
+                  type="file"
+                  style={{ display: "none" }}
+                  onChange={handleFileChange}
+                />
+              </label>
             </div>
             <div className="Formset">
               <div className="textfild">
@@ -538,7 +647,7 @@ useEffect(() => {
               </div>
               <div>
                 <TextField
-                  label="Eamail"
+                  label="Email"
                   id="email"
                   name="email"
                   onChange={handleInputChange}
@@ -573,6 +682,146 @@ useEffect(() => {
             <Button onClick={closeAddUserModal}>Cancel</Button>
             <Button onClick={handleAddUser} variant="contained" color="primary">
               Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={isEditUserModalOpen} onClose={closeAddUserModal}>
+          <DialogTitle>Edit Employe</DialogTitle>
+          <DialogContent>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <Avatar
+                  alt="Profile Picture"
+                  src={ editProfilePicture ? editProfilePicture : formData.file}
+                  style={{ width: "100px", height: "100px" }}
+                  type="file"
+                />
+                <label htmlFor="fileInput">
+                  <AddAPhotoIcon />
+                  <input
+                    id="fileInput"
+                    type="file"
+                    style={{ display: "none" }}
+                    onChange={handleFileEditChange}
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="Formset">
+              <div className="textfild">
+                <TextField
+                  label="Name"
+                  name="name"
+                  id="name"
+                  onChange={handleInputChange}
+                  variant="outlined"
+                  fullWidth
+                  value={formData.name}
+                />
+              </div>
+              <div>
+                <TextField
+                  label="Number"
+                  id="phone"
+                  name="phone"
+                  onChange={handleInputChange}
+                  variant="outlined"
+                  fullWidth
+                  value={formData.phone}
+                />
+              </div>
+            </div>
+            <div className="Formset">
+              <div className="textfild">
+                <TextField
+                  label="Skill"
+                  variant="outlined"
+                  id="skill"
+                  name="skill"
+                  onChange={handleInputChange}
+                  fullWidth
+                  value={formData.skill}
+                />
+              </div>
+              <div>
+                <TextField
+                  label="Experience"
+                  id="experience"
+                  name="experience"
+                  onChange={handleInputChange}
+                  variant="outlined"
+                  fullWidth
+                  value={formData.experience}
+                />
+              </div>
+            </div>
+            <div className="Formset">
+              <div className="textfild">
+                <TextField
+                  label="Company"
+                  id="company"
+                  name="company"
+                  onChange={handleInputChange}
+                  variant="outlined"
+                  fullWidth
+                  value={formData.company}
+                />
+              </div>
+              {/* <div>
+                <TextField
+                  label="Eamail"
+                  id="email"
+                  name="email"
+                  onChange={handleInputChange}
+                  variant="outlined"
+                  fullWidth
+                  value={formData.email}
+                />
+              </div> */}
+            </div>
+            <div>
+              <div className="Formset">
+                <FormLabel id="demo-row-radio-buttons-group-label">
+                  Freelancer
+                </FormLabel>
+                <RadioGroup
+                  row
+                  aria-labelledby="demo-row-radio-buttons-group-label"
+                  name="freelancer"
+                  value={formData.freelancer}
+                  // value={formData.freelancer}
+                  onChange={handleInputChange} // Handle radio button change
+                >
+                  <FormControlLabel
+                    value="yes"
+                    control={<Radio />}
+                    label="Yes"
+                  />
+                  <FormControlLabel value="no" control={<Radio />} label="No" />
+                </RadioGroup>
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeAddUserModal}>Cancel</Button>
+            <Button
+              onClick={handleEditUser}
+              variant="contained"
+              color="primary"
+            >
+              Update employee
             </Button>
           </DialogActions>
         </Dialog>
